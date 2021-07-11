@@ -17,7 +17,7 @@ class SnapCss extends Command {
   static args = [{name: 'file'}]
 
   async run() {
-    const {args, flags} = this.parse(SnapCss)
+    // const {args, flags} = this.parse(SnapCss)
 
     // const name = flags.name ?? 'world'
     // this.log(`hello ${name} from ./src/index.ts`)
