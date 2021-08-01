@@ -1,8 +1,12 @@
+import { exit } from "process";
+import CSS from "../css/css";
+
 export default class Loader {
   postcss = require('postcss');
   shorthandExpand = require('postcss-shorthand-expand');
-  validator = require('csstree-validator').validate;
+  validator = require('csstree-validator');
   fs = require('fs');
+  cssbeautify = require('cssbeautify');
 
   constructor(
     public inputPath: string
@@ -12,36 +16,46 @@ export default class Loader {
     var data: string = '';
     try {
       data = this.fs.readFileSync(this.inputPath, 'utf8');
+      data = this.cssbeautify(data, {
+        indent: '  ',
+        openbrace: 'separate-line',
+        autosemicolon: true
+      });
     }
     catch (err) {
       console.error(err);
     }
+
     var validated = this.validate(data);
-    //console.log(validated);
-    var cleared = this.clearComments(validated);
-    //console.log(cleared);
-    var constructed = this.construct(cleared);
-    //console.log(constructed)
-    return constructed;
+    if (validated == 1) {
+
+      var cleared = this.clearComments(data);
+      var constructed = this.construct(cleared);
+      return constructed;
+    }
+    else {
+      console.log('The css is not valid');
+      exit();
+    }
+
   }
 
   validate(data: string) {
-    var result = this.validator(data);
-    //console.log(result)
-    if (result.valid != []) {
-      //console.log(result.valid);
-      return data;
+    var result = this.validator.validate(data);
+    console.log(result.length)
+    if (result.length == 0) {
+      return 1;
     }
     else {
       console.log('The css file is not valid');
-      console.log(result.errors);
-      return;
+      return 0;
     }
   }
 
   clearComments(data: any) {
+    console.log('clear comment');
+
     var start = data.indexOf('/*');
-    //console.log(data.charAt(data.indexOf('/*')))
     if (start != -1) {
       var end = data.indexOf('*/');
       data = data.substring(0, start - 1) + data.substring(end + 2, data.length);
@@ -49,14 +63,14 @@ export default class Loader {
       return data;
     }
     else {
-      //console.log(data);
       return data;
 
     }
   }
 
-  construct(data: any) {
+  construct(data: string) {
     data = this.postcss([this.shorthandExpand()]).process(data).css;
+
     var nonMediaTagProp: any = [];
     var mediaTagProp: any = [];
     for (var i = 0; i < data.length; i++) {

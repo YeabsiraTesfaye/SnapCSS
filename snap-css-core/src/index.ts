@@ -28,16 +28,50 @@ class SnapCss extends Command {
     // if (args.file && flags.force) {
     //   this.log(`you input --force and --file: ${args.file}`)
     // }
-    const trial = CSS.fromString('Trial CSS')
+    //const trial = CSS.fromString('Trial CSS')
     // eslint-disable-next-line no-console
     //console.log(trial.toString())
 
 
 
 
-    var l = new Loader('C:/Users/Yeabsira Tesfaye/Desktop/CSS_optimizer/indexCss.css');
-    console.log(new restructurer().NonMediaTags(l.scan()));
-    console.log(new restructurer().MediaTags(l.scan()));
+    var l = new Loader('C:\\Users\\Yeabsira Tesfaye\\Desktop\\snap-css-webpage\\node_modules\\sweetalert2\\dist\\sweetalert2.min.css').scan();
+    var r = new restructurer();
+
+    // console.log(r.NonMediaTags(l))
+    //var result = Object.assign(r.NonMediaTags(l), r.MediaTags(l));
+    const nmt = r.NonMediaTags(l);
+    const mt = r.MediaTags(l);
+
+    let toBEWritten = '';
+    for (var n in nmt) {
+      var tempProp = '';
+      for (var ree in nmt[n]) {
+        tempProp = tempProp + '   ' + ree + ' : ' + nmt[n][ree] + ';\n';
+
+      }
+      toBEWritten = toBEWritten + n + ' {\n' + tempProp + '}\n\n';
+    }
+
+    for (var m in mt) {
+      var completeMt = '';
+      for (var n in mt[m]) {
+        var tempProp = '';
+        for (var ree in mt[m][n]) {
+          tempProp = tempProp + '      ' + ree + ' : ' + mt[m][n][ree] + ';\n';
+
+        }
+        completeMt = completeMt + '   ' + n + ' {\n' + tempProp + '   }\n\n';
+      }
+
+      toBEWritten = toBEWritten + m + ' {\n' + completeMt + '}\n\n';
+    }
+    // console.log(toBEWritten)
+
+    r.WriteToFile(toBEWritten)
+
+
+
 
 
   }
