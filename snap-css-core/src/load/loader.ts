@@ -1,178 +1,143 @@
-import { exit } from "process";
-import CSS from "../css/css";
+/* eslint-disable no-useless-constructor */
+/* eslint-disable no-negated-condition */
+const validator = require('csstree-validator')
 
+const fs = require('fs')
+
+const cssbeautify = require('cssbeautify')
+
+const strip = require('strip-comments')
+
+const css = require('../../node_modules/css')
 export default class Loader {
-  postcss = require('postcss');
-  shorthandExpand = require('postcss-shorthand-expand');
-  validator = require('csstree-validator');
-  fs = require('fs');
-  cssbeautify = require('cssbeautify');
-
   constructor(
     public inputPath: string
   ) { }
 
   scan() {
-    var data: string = '';
+    let data = ''
     try {
-      data = this.fs.readFileSync(this.inputPath, 'utf8');
-      data = this.cssbeautify(data, {
+      data = fs.readFileSync(this.inputPath, 'utf8')
+      data = cssbeautify(data, {
         indent: '  ',
         openbrace: 'separate-line',
-        autosemicolon: true
-      });
-    }
-    catch (err) {
-      console.error(err);
-    }
-
-    var validated = this.validate(data);
-    if (validated == 1) {
-
-      var cleared = this.clearComments(data);
-      var constructed = this.construct(cleared);
-      return constructed;
-    }
-    else {
-      console.log('The css is not valid');
-      exit();
+        autosemicolon: true,
+      })
+      // eslint-disable-next-line unicorn/catch-error-name
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err)
     }
 
+    const validated = this.validate(data)
+    if (validated === 1) {
+      const cleared = this.clearComments(data)
+      const constructed = this.construct(cleared)
+      // console.log(constructed)
+      return constructed
+    }
+    return 'invalid'
   }
 
   validate(data: string) {
-    var result = this.validator.validate(data);
-    console.log(result.length)
-    if (result.length == 0) {
-      return 1;
+    const result = validator.validate(data)
+    if (result.length === 0) {
+      return 1
     }
-    else {
-      console.log('The css file is not valid');
-      return 0;
-    }
+    // eslint-disable-next-line no-console
+    console.log('The css file is not valid')
+    return 0
   }
 
   clearComments(data: any) {
-    console.log('clear comment');
-
-    var start = data.indexOf('/*');
-    if (start != -1) {
-      var end = data.indexOf('*/');
-      data = data.substring(0, start - 1) + data.substring(end + 2, data.length);
-      this.clearComments(data);
-      return data;
-    }
-    else {
-      return data;
-
-    }
+    const x = strip(data) // => var t;
+    return x
   }
 
   construct(data: string) {
-    data = this.postcss([this.shorthandExpand()]).process(data).css;
-
-    var nonMediaTagProp: any = [];
-    var mediaTagProp: any = [];
-    for (var i = 0; i < data.length; i++) {
-      var tag = '';
-      var property = '';
-      if (data.charAt(i) == '{') {
-        var j = i - 1;
-        while (data.charAt(j) != '}' && j >= 0) {
-          tag = tag + data.charAt(j);
-          j--;
+    const nonMediaSelectorProp: any = []
+    const mediaSelectorProp: any = []
+    for (let i = 0; i < data.length; i++) {
+      let selector = ''
+      let property = ''
+      if (data.charAt(i) === '{') {
+        let j = i - 1
+        while (data.charAt(j) !== '}' && j >= 0) {
+          selector += data.charAt(j)
+          j--
         }
-        if (!reverseString(tag).includes('@')) {
-          tag = reverseString(tag).replace(/\n/g, '').replace(/\r/g, '').trim();
-          if (tag.includes(',')) {
-            var tags = tag.split(',');
-            var k = i;
-            for (var t in tags) {
-              while (data.charAt(k - 1) != '}') {
-                property = property + data.charAt(k);
-                k++;
-              }
-              property = property.replace('{', '').replace('}', '').trim() + ';';
-              if (Object.keys(nonMediaTagProp).includes(tags[t].trim())) {
-                var oldProp = nonMediaTagProp[tags[t]];
-                var newProp = oldProp + property;
-                nonMediaTagProp[tags[t]] = newProp;
-              }
-              else {
-                nonMediaTagProp[tags[t]] = property;
-              }
-            }
-            tag = '';
-            property = '';
+        if (!this.reverseString(selector).includes('@')) {
+          selector = this.reverseString(selector).replace(/\n/g, '').replace(/\r/g, '').trim()
+          let k = i
+          while (data.charAt(k - 1) !== '}') {
+            property += data.charAt(k)
+            k++
           }
-          else {
-            var k = i;
-            while (data.charAt(k - 1) != '}') {
-              property = property + data.charAt(k);
-              k++;
-            }
-            property = property.replace('{', '').replace('}', '').trim() + ';';
-            if (Object.keys(nonMediaTagProp).includes(tag.trim())) {
-              var oldProp = nonMediaTagProp[tag];
-              var newProp = oldProp + property;
-              nonMediaTagProp[tag] = newProp;
-            }
-            else {
-              nonMediaTagProp[tag] = property;
-            }
-            tag = '';
-            property = '';
+          property = property.replace('{', '').replace('}', '').trim()
+          if (Object.keys(nonMediaSelectorProp).includes(selector.trim())) {
+            const oldProp = nonMediaSelectorProp[selector]
+            const newProp = oldProp + property
+            nonMediaSelectorProp[selector] = newProp
+          } else {
+            nonMediaSelectorProp[selector] = property
           }
-        }
-        else {
-          var opentag = 0;
-          var closetag = 0;
-          var j = i;
+          selector = ''
+          property = ''
+        } else {
+          let openselector = 0
+          let closeselector = 0
+          let j = i
           while (j < data.length) {
-            property = property + data[j];
-            if (data[j] == '{') { opentag++; }
-            else if (data[j] == '}') { closetag++; }
-            if (opentag == closetag) {
-              tag = reverseString(tag).replace(/\n/g, '').replace(/\r/g, '').trim();
-              if (Object.keys(mediaTagProp).includes(tag.trim())) {
-                var oldProp = mediaTagProp[tag];
-                var newProp = oldProp + property.substring(1, property.length - 2);
-                mediaTagProp[tag] = newProp;
-              }
-              else {
-                mediaTagProp[tag] = property.substring(1, property.length - 2);
-              }
-              opentag = 0;
-              closetag = 0;
-              tag = '';
-              property = '';
-              i = j + 1;
-              break;
+            property += data[j]
+            // eslint-disable-next-line max-depth
+            if (data[j] === '{') {
+              openselector++
+            } else if (data[j] === '}') {
+              closeselector++
             }
-            j++;
+            if (openselector === closeselector) {
+              selector = this.reverseString(selector).replace(/\n/g, '').replace(/\r/g, '').trim()
+              // eslint-disable-next-line max-depth
+              if (Object.keys(mediaSelectorProp).includes(selector.trim())) {
+                const oldProp = mediaSelectorProp[selector]
+                const newProp = oldProp + property.substring(1, property.length - 2)
+                mediaSelectorProp[selector] = newProp
+              } else {
+                mediaSelectorProp[selector] = property.substring(1, property.length - 2)
+              }
+              openselector = 0
+              closeselector = 0
+              selector = ''
+              property = ''
+              i = j + 1
+              break
+            }
+            j++
           }
         }
       }
     }
-    const result = [nonMediaTagProp, mediaTagProp];
-    return result;
+    let result = [nonMediaSelectorProp, mediaSelectorProp]
+    let mediaSelectorsStr = ''
+    let nonMediaSelectorsStr = ''
+    // eslint-disable-next-line guard-for-in
+    for (const r in result[0]) {
+      nonMediaSelectorsStr = nonMediaSelectorsStr + r + '{\n' + result[0][r] + '\n}\n'
+    }
+    // eslint-disable-next-line guard-for-in
+    for (const r in result[1]) {
+      mediaSelectorsStr = mediaSelectorsStr + r + '{\n' + result[1][r] + '\n}\n'
+    }
+    result = [css.parse(nonMediaSelectorsStr), css.parse(mediaSelectorsStr)]
+    return result
+  }
+
+  reverseString(str: string) {
+    let newString = ''
+    for (let i = str.length - 1; i >= 0; i--) {
+      newString += str[i]
+    }
+    return newString
   }
 }
 
-
-
-
-
-
-
-
-//**********************************************helper functions***********************************************
-
-
-function reverseString(str: string) {
-  var newString = "";
-  for (var i = str.length - 1; i >= 0; i--) {
-    newString += str[i];
-  }
-  return newString;
-}

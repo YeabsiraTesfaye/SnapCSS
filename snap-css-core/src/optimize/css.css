@@ -115,7 +115,7 @@ h1 {
 p {
    border-bottom-width :  1px;
    font-size :  50px;
-   font-family : 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+   font-family :  'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
 
 .facebook,.insta,.linkedin,.twitter {
@@ -282,4 +282,5 @@ input:focus,textarea:focus {
    }
 
 }
+
 
